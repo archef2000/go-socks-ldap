@@ -59,8 +59,6 @@ var (
 	ldap_tls_enable, ldap_tls_skip_verify bool
 )
 
-const DefaultConfig string = "/config.yaml"
-
 func checkRequiredField(field string, value string) {
 	if value == "" {
 		log.Fatalf("Missing required field '%s'", field)
@@ -104,7 +102,7 @@ func getEnv(key string, fallback string) string {
 }
 
 func main() {
-	config_path := flag.String("config", DefaultConfig, "Config path")
+	config_path := flag.String("config", "envs", "Config path")
 	flag.Parse()
 	if *config_path == "envs" {
 		data, err := os.ReadFile(*config_path)
@@ -142,13 +140,13 @@ func main() {
 		ldap_tls_skip_verify, _ = strconv.ParseBool(getEnv("TLS_SKIP_VERIFY", "false"))
 		server_port = getEnv("SERVER_PORT", "1080")
 		server_host = getEnv("SERVER_HOST", "0.0.0.0")
-		checkRequiredField("ldap.host", ldap_host)
-		checkRequiredField("ldap.username", bind_user)
-		checkRequiredField("ldap.password", bind_pass)
-		checkRequiredField("ldap.base_dn", ldap_base_dn)
-		checkRequiredField("ldap.user_filter", ldap_user_filter)
-		checkRequiredField("server.host", server_host)
-		checkRequiredField("server.port", server_port)
+		checkRequiredField("LDAP_HOST", ldap_host)
+		checkRequiredField("LDAP_USER", bind_user)
+		checkRequiredField("LDAP_PASS", bind_pass)
+		checkRequiredField("LDAP_BASE_DN", ldap_base_dn)
+		checkRequiredField("LDAP_USER_FILTER", ldap_user_filter)
+		checkRequiredField("SERVER_HOST", server_host)
+		checkRequiredField("SERVER_PORT", server_port)
 	}
 	ldap_conn, err := ldap.DialURL(ldap_host)
 	if err != nil {
