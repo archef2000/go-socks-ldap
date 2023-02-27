@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strconv"
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/things-go/go-socks5"
@@ -49,15 +50,20 @@ type Config struct {
 
 var users_list []string
 var dn_list []string
-var bind_user string
-var bind_pass string
 var ldap_conn *ldap.Conn
+var (
+	bind_user, bind_pass, ldap_host, ldap_base_dn, ldap_user_filter, server_port, server_host string
+)
+
+var (
+	ldap_tls_enable, ldap_tls_skip_verify bool
+)
 
 const DefaultConfig string = "/config.yaml"
 
 func checkRequiredField(field string, value string) {
 	if value == "" {
-		log.Fatalf("Missing required field '%s' in YAML file", field)
+		log.Fatalf("Missing required field '%s'", field)
 	}
 }
 
@@ -69,12 +75,11 @@ func check_user(target string) string {
 		return ""
 	}
 }
-
-func get_users(ldan_conn *ldap.Conn, config Config) bool {
+func get_users(ldan_conn *ldap.Conn, ldap_base_dn string, ldap_user_filter string) bool {
 	searchRequest_users := ldap.NewSearchRequest(
-		config.Ldap.BaseDn,
+		ldap_base_dn,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		config.Ldap.UserFilter,
+		ldap_user_filter,
 		[]string{"uid"},
 		nil,
 	)
@@ -91,40 +96,68 @@ func get_users(ldan_conn *ldap.Conn, config Config) bool {
 	return true
 }
 
+func getEnv(key string, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
 func main() {
 	config_path := flag.String("config", DefaultConfig, "Config path")
 	flag.Parse()
-	data, err := os.ReadFile(*config_path)
-	if err != nil {
-		panic(err)
+	if *config_path == "envs" {
+		data, err := os.ReadFile(*config_path)
+		if err != nil {
+			panic(err)
+		}
+		var config Config
+		err = yaml.Unmarshal(data, &config)
+		if err != nil {
+			panic(err)
+		}
+		ldap_host = config.Ldap.Host
+		bind_user = config.Ldap.Username
+		bind_pass = config.Ldap.Password
+		ldap_base_dn = config.Ldap.BaseDn
+		ldap_user_filter = config.Ldap.UserFilter
+		ldap_tls_enable = config.Ldap.TLS.Enabled
+		ldap_tls_skip_verify = config.Ldap.TLS.SkipVerify
+		server_host = config.Server.Host
+		server_port = config.Server.Port
+		checkRequiredField("ldap.host", ldap_host)
+		checkRequiredField("ldap.username", bind_user)
+		checkRequiredField("ldap.password", bind_pass)
+		checkRequiredField("ldap.base_dn", ldap_base_dn)
+		checkRequiredField("ldap.user_filter", ldap_user_filter)
+		checkRequiredField("server.host", server_host)
+		checkRequiredField("server.port", server_port)
+	} else {
+		ldap_host = getEnv("LDAP_HOST", "ldap://ldap.host:389")
+		bind_user = getEnv("LDAP_USER", "cn=admin,ou=people,dc=example,dc=com")
+		bind_pass = getEnv("LDAP_PASS", "password")
+		ldap_base_dn = getEnv("LDAP_BASE_DN", "ou=people,dc=example,dc=com")
+		ldap_user_filter = getEnv("LDAP_USER_FILTER", "(&(objectClass=person)(memberOf=cn=socks,ou=groups,dc=example,dc=com))")
+		ldap_tls_enable, _ = strconv.ParseBool(getEnv("TLS_ENABLED", "false"))
+		ldap_tls_skip_verify, _ = strconv.ParseBool(getEnv("TLS_SKIP_VERIFY", "false"))
+		server_port = getEnv("SERVER_PORT", "1080")
+		server_host = getEnv("SERVER_HOST", "0.0.0.0")
+		checkRequiredField("ldap.host", ldap_host)
+		checkRequiredField("ldap.username", bind_user)
+		checkRequiredField("ldap.password", bind_pass)
+		checkRequiredField("ldap.base_dn", ldap_base_dn)
+		checkRequiredField("ldap.user_filter", ldap_user_filter)
+		checkRequiredField("server.host", server_host)
+		checkRequiredField("server.port", server_port)
 	}
-
-	var config Config
-
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		panic(err)
-	}
-
-	ldap_host := config.Ldap.Host
-	bind_user = config.Ldap.Username
-	bind_pass = config.Ldap.Password
-	checkRequiredField("ldap.username", config.Ldap.Username)
-	checkRequiredField("ldap.password", config.Ldap.Password)
-	checkRequiredField("ldap.host", config.Ldap.Host)
-	checkRequiredField("ldap.base_dn", config.Ldap.BaseDn)
-	checkRequiredField("ldap.user_filter", config.Ldap.UserFilter)
-	checkRequiredField("server.host", config.Server.Host)
-	checkRequiredField("server.port", config.Server.Port)
-
-	ldap_conn, err = ldap.DialURL(ldap_host)
+	ldap_conn, err := ldap.DialURL(ldap_host)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer ldap_conn.Close()
 
-	if config.Ldap.TLS.Enabled {
-		err = ldap_conn.StartTLS(&tls.Config{InsecureSkipVerify: config.Ldap.TLS.SkipVerify})
+	if ldap_tls_enable {
+		err = ldap_conn.StartTLS(&tls.Config{InsecureSkipVerify: ldap_tls_skip_verify})
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -133,7 +166,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_ = get_users(ldap_conn, config)
+	_ = get_users(ldap_conn, ldap_base_dn, ldap_user_filter)
 	cred := &MyCredentialStore{}
 	server := socks5.NewServer(
 		//socks5.WithCredential(socks5.StaticCredentials{"username": "password",}),
@@ -142,7 +175,7 @@ func main() {
 			socks5.NewLogger(log.New(os.Stdout, "", log.LstdFlags)),
 		),
 	)
-	address := config.Server.Host + ":" + config.Server.Port
+	address := server_host + ":" + server_port
 	log.Printf("Starting socks5 server at %s", address)
 	if err := server.ListenAndServe("tcp", address); err != nil {
 		panic(err)
