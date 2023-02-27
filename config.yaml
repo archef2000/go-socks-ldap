@@ -1,0 +1,13 @@
+ldap:
+  host: "ldap://ldap.host:389"
+  base_dn: "ou=people,dc=example,dc=com"
+  user_filter: "(&(objectClass=person)(memberOf=cn=socks,ou=groups,dc=example,dc=com))"
+  username: "cn=admin,ou=people,dc=example,dc=com"
+  password: "password"
+  tls:
+    enabled: false
+    skip_verify: false
+
+server:
+  host: 0.0.0.0
+  port: 1080
