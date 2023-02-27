@@ -16,16 +16,27 @@ import (
 type MyCredentialStore struct{}
 
 func (s *MyCredentialStore) Valid(user, password, userAddr string) bool {
-	log.Printf("User '%s' connecting", user)
 	result := check_user(user)
 	if result != "" {
-		success := ldap_conn.Bind(result, password) == nil
+		if len(name_list) > 0 {
+			pass_ok := check_pass(user, password)
+			if pass_ok {
+				return true
+			}
+		}
+		log.Printf("User '%s' connecting", user)
+		ldap_conn := getLdapConn(ldap_host, ldap_tls_enable, ldap_tls_skip_verify)
+		bind_res := ldap_conn.Bind(result, password)
+		success := bind_res == nil
 		_ = ldap_conn.Bind(bind_user, bind_pass)
 		if success {
+			pass_list = append(pass_list, password)
+			name_list = append(name_list, user)
 			log.Printf("User '%s' successfully authenticated", user)
 		}
 		return success
 	} else {
+		log.Printf("User '%s' connecting", user)
 		return false
 	}
 }
@@ -48,9 +59,10 @@ type Config struct {
 	} `yaml:"server"`
 }
 
+var pass_list []string
+var name_list []string
 var users_list []string
 var dn_list []string
-var ldap_conn *ldap.Conn
 var (
 	bind_user, bind_pass, ldap_host, ldap_base_dn, ldap_user_filter, server_port, server_host string
 )
@@ -65,15 +77,30 @@ func checkRequiredField(field string, value string) {
 	}
 }
 
-func check_user(target string) string {
-	index := sort.SearchStrings(users_list, target)
-	if index < len(users_list) && users_list[index] == target {
+func check_user(username string) string {
+	index := sort.SearchStrings(users_list, username)
+	if index < len(users_list) && users_list[index] == username {
 		return dn_list[index]
 	} else {
 		return ""
 	}
 }
-func get_users(ldan_conn *ldap.Conn, ldap_base_dn string, ldap_user_filter string) bool {
+
+func check_pass(username string, password string) bool {
+	index := sort.SearchStrings(name_list, username)
+	if index < len(users_list) && users_list[index] == username {
+		return pass_list[index] == password
+	} else {
+		return false
+	}
+}
+
+func get_users(ldap_base_dn string, ldap_user_filter string) bool {
+	ldap_conn := getLdapConn(ldap_host, ldap_tls_enable, ldap_tls_skip_verify)
+	err := ldap_conn.Bind(bind_user, bind_pass)
+	if err != nil {
+		log.Fatal(err)
+	}
 	searchRequest_users := ldap.NewSearchRequest(
 		ldap_base_dn,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
@@ -83,7 +110,7 @@ func get_users(ldan_conn *ldap.Conn, ldap_base_dn string, ldap_user_filter strin
 	)
 	users_list = users_list[:0]
 	dn_list = dn_list[:0]
-	searchResult_users, err := ldan_conn.Search(searchRequest_users)
+	searchResult_users, err := ldap_conn.Search(searchRequest_users)
 	if err != nil {
 		panic(err)
 	}
@@ -99,6 +126,20 @@ func getEnv(key string, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func getLdapConn(ldap_host string, ldap_tls_enable bool, ldap_tls_skip_verify bool) *ldap.Conn {
+	ldap_conn, err := ldap.DialURL(ldap_host)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if ldap_tls_enable {
+		err = ldap_conn.StartTLS(&tls.Config{InsecureSkipVerify: ldap_tls_skip_verify})
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	return ldap_conn
 }
 
 func main() {
@@ -148,23 +189,7 @@ func main() {
 		checkRequiredField("server.host", server_host)
 		checkRequiredField("server.port", server_port)
 	}
-	ldap_conn, err := ldap.DialURL(ldap_host)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer ldap_conn.Close()
-
-	if ldap_tls_enable {
-		err = ldap_conn.StartTLS(&tls.Config{InsecureSkipVerify: ldap_tls_skip_verify})
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	err = ldap_conn.Bind(bind_user, bind_pass)
-	if err != nil {
-		log.Fatal(err)
-	}
-	_ = get_users(ldap_conn, ldap_base_dn, ldap_user_filter)
+	_ = get_users(ldap_base_dn, ldap_user_filter)
 	cred := &MyCredentialStore{}
 	server := socks5.NewServer(
 		//socks5.WithCredential(socks5.StaticCredentials{"username": "password",}),
