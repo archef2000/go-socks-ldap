@@ -16,15 +16,15 @@ services:
     ports:
       - 1080:1080/tcp
     environment:
-      - LDAP_HOST= ldap://ldap.host:389
-      - LDAP_USER= cn=admin,ou=people,dc=example,dc=com
-      - LDAP_PASS= password
-      - LDAP_BASE_DN= ou=people,dc=example,dc=com
-      - LDAP_USER_FILTER= (&(objectClass=person)(memberOf=cn=socks,ou=groups,dc=example,dc=com))
-      - TLS_ENABLED= false
-      - TLS_SKIP_VERIFY= false
-      - SERVER_PORT= 1080
-      - SERVER_HOST= 0.0.0.0
+      - LDAP_HOST=ldap://ldap.host:389
+      - LDAP_USER=cn=admin,ou=people,dc=example,dc=com
+      - LDAP_PASS=password
+      - LDAP_BASE_DN=ou=people,dc=example,dc=com
+      - LDAP_USER_FILTER=(&(objectClass=person)(memberOf=cn=socks,ou=groups,dc=example,dc=com))
+      - TLS_ENABLED=false
+      - TLS_SKIP_VERIFY=false
+      - SERVER_PORT=1080
+      - SERVER_HOST=0.0.0.0
     restart: always
 </code></pre>
 <h3>With config.yaml</h3>
