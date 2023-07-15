@@ -1,3 +1,5 @@
+update_interval: 10
+
 ldap:
   host: "ldap://ldap.host:389"
   base_dn: "ou=people,dc=example,dc=com"

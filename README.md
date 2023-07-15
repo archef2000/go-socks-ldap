@@ -25,6 +25,7 @@ services:
       - TLS_SKIP_VERIFY=false
       - SERVER_PORT=1080
       - SERVER_HOST=0.0.0.0
+      - UPDATE_INTERVAL=10
     restart: always
 </code></pre>
 <h3>With config.yaml</h3>
