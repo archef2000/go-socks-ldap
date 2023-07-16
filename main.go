@@ -88,7 +88,7 @@ type Config struct {
 	Ldap struct {
 		Host        string `yaml:"host"`
 		TLS         bool   `yaml:"tls"`
-		TLSSkip     bool   `yaml:"tls_skip_verify"`
+		TLSSkip     bool   `default:"false" yaml:"tls_skip_verify"`
 		BaseDN      string `yaml:"base_dn"`
 		UserFilter  string `yaml:"user_filter"`
 		Username    string `yaml:"username"`
