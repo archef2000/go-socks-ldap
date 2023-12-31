@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/go-ldap/ldap/v3 v3.4.6
-	github.com/things-go/go-socks5 v0.0.3
+	github.com/things-go/go-socks5 v0.0.4
 	gopkg.in/yaml.v3 v3.0.1
 )
 
