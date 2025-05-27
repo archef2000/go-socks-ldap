@@ -1,6 +1,6 @@
-ARG base_image=golang:1.20
+ARG base_image=golang:1.23
 
-FROM ${base_image} as build
+FROM ${base_image} AS build
 
 ENV GO111MODULE=on
 

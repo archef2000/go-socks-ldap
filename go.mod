@@ -1,6 +1,6 @@
 module github.com/archef2000/go-socks-ldap
 
-go 1.23.0
+go 1.23
 
 require (
 	github.com/go-ldap/ldap/v3 v3.4.11
