@@ -3,7 +3,7 @@ module github.com/archef2000/go-socks-ldap
 go 1.24.0
 
 require (
-	github.com/go-ldap/ldap/v3 v3.4.11
+	github.com/go-ldap/ldap/v3 v3.4.12
 	github.com/things-go/go-socks5 v0.1.0
 	gopkg.in/yaml.v3 v3.0.1
 )
