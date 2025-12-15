@@ -4,7 +4,7 @@ FROM ${base_image} AS build
 
 ENV GO111MODULE=on
 
-RUN apt update &&  apt install ca-certificates libgnutls30 -y
+RUN apt update && apt install ca-certificates -y
 
 RUN mkdir -p /go/src
 
