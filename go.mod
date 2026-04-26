@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/go-ldap/ldap/v3 v3.4.13
-	github.com/things-go/go-socks5 v0.1.0
+	github.com/things-go/go-socks5 v0.1.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
