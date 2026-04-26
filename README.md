@@ -2,7 +2,7 @@
 Socks5 proxy with LDAP authentication
 
 [![Docker Socks LDAP](https://github.com/Archef2000/go-socks-ldap/actions/workflows/main.yml/badge.svg)](https://github.com/Archef2000/go-socks-ldap/actions/workflows/main.yml)
-[![CodeQL](https://github.com/archef2000/go-socks-ldap/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/archef2000/go-socks-ldap/actions/workflows/github-code-scanning/codeql)
+[![CodeQL](https://github.com/archef2000/go-socks-ldap/actions/workflows/codeql.yml/badge.svg)](https://github.com/archef2000/go-socks-ldap/actions/workflows/codeql.yml)
 
 <a href="https://github.com/Archef2000/go-socks-ldap/">Github</a>
 
